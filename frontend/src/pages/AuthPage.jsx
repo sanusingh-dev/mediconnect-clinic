@@ -1,3 +1,4 @@
+
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -86,10 +87,10 @@ const AuthPage = () => {
             <p className="mt-2 text-slate-600">Secure login for patients, doctors, and administrators.</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setMode('login')} className={`rounded-full px-5 py-2 ${mode === 'login' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'}`}>
+            <button type="button" onClick={() => setMode('login')} className={`rounded-full px-5 py-2 ${mode === 'login' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'}`}>
               Login
             </button>
-            <button onClick={() => setMode('register')} className={`rounded-full px-5 py-2 ${mode === 'register' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'}`}>
+            <button type="button" onClick={() => setMode('register')} className={`rounded-full px-5 py-2 ${mode === 'register' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'}`}>
               Register
             </button>
           </div>
