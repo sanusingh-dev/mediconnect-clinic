@@ -6,10 +6,12 @@ const Doctor = require('../models/Doctor');
 const generateToken = require('../utils/generateToken');
 
 const registerPatient = asyncHandler(async (req, res) => {
+  console.log('📝 [PATIENT REGISTER] Received request:', { email: req.body.email, name: req.body.name });
   const { name, email, password, phone, age, gender, address } = req.body;
   const userExists = await User.findOne({ email });
 
   if (userExists) {
+    console.log('❌ [PATIENT REGISTER] Email already exists:', email);
     res.status(400);
     throw new Error('Email already in use');
   }
@@ -18,11 +20,13 @@ const registerPatient = asyncHandler(async (req, res) => {
   const user = await User.create({ name, email, password: hashedPassword, role: 'patient' });
 
   if (!user) {
+    console.log('❌ [PATIENT REGISTER] Failed to create user');
     res.status(400);
     throw new Error('Unable to create patient user');
   }
 
   await Patient.create({ user: user._id, phone, age, gender, address });
+  console.log('✅ [PATIENT REGISTER] Success:', { userId: user._id, email: user.email });
 
   res.status(201).json({
     _id: user._id,
@@ -34,10 +38,12 @@ const registerPatient = asyncHandler(async (req, res) => {
 });
 
 const registerDoctor = asyncHandler(async (req, res) => {
+  console.log('📝 [DOCTOR REGISTER] Received request:', { email: req.body.email, name: req.body.name });
   const { name, email, password, specialty, bio, phone, location, availableSlots } = req.body;
   const userExists = await User.findOne({ email });
 
   if (userExists) {
+    console.log('❌ [DOCTOR REGISTER] Email already exists:', email);
     res.status(400);
     throw new Error('Email already in use');
   }
@@ -46,6 +52,7 @@ const registerDoctor = asyncHandler(async (req, res) => {
   const user = await User.create({ name, email, password: hashedPassword, role: 'doctor' });
 
   if (!user) {
+    console.log('❌ [DOCTOR REGISTER] Failed to create user');
     res.status(400);
     throw new Error('Unable to create doctor user');
   }
@@ -58,6 +65,7 @@ const registerDoctor = asyncHandler(async (req, res) => {
     location,
     availableSlots,
   });
+  console.log('✅ [DOCTOR REGISTER] Success:', { userId: user._id, email: user.email });
 
   res.status(201).json({
     _id: user._id,
@@ -69,10 +77,12 @@ const registerDoctor = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
+  console.log('🔐 [LOGIN] Received request:', { email: req.body.email });
   const { email, password } = req.body;
   const user = await User.findOne({ email });
 
   if (!user) {
+    console.log('❌ [LOGIN] User not found:', email);
     res.status(401);
     throw new Error('Invalid credentials');
   }
@@ -80,10 +90,12 @@ const login = asyncHandler(async (req, res) => {
   const passwordMatches = await bcrypt.compare(password, user.password);
 
   if (!passwordMatches) {
+    console.log('❌ [LOGIN] Invalid password for:', email);
     res.status(401);
     throw new Error('Invalid credentials');
   }
 
+  console.log('✅ [LOGIN] Success:', { userId: user._id, email: user.email, role: user.role });
   res.json({
     _id: user._id,
     name: user.name,

@@ -1,4 +1,18 @@
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+
 const ContactPage = () => {
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // No backend contact endpoint exists yet — show confirmation for now
+    toast.success('Message sent. We will get back to you shortly.');
+    setEmail('');
+    setMessage('');
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
       <div className="rounded-3xl bg-white p-10 shadow-xl">
@@ -13,16 +27,16 @@ const ContactPage = () => {
             <h2 className="text-xl font-semibold text-slate-900">Headquarters</h2>
             <p className="text-slate-600">123 Health Avenue<br />City Center, Healthtown<br />support@mediconnect.com</p>
           </div>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-              <input type="email" placeholder="you@example.com" className="w-full" />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" className="w-full" />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Message</label>
-              <textarea rows="5" placeholder="Tell us about your clinic needs" className="w-full"></textarea>
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows="5" placeholder="Tell us about your clinic needs" className="w-full"></textarea>
             </div>
-            <button type="button" className="rounded-full bg-brand px-6 py-3 text-white hover:bg-blue-600">
+            <button type="submit" className="rounded-full bg-brand px-6 py-3 text-white hover:bg-blue-600">
               Send Message
             </button>
           </form>

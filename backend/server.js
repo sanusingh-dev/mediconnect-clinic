@@ -36,6 +36,7 @@ const seedAdminUser = async () => {
 seedAdminUser().catch((error) => console.error('Admin seed error:', error));
 
 app.get('/', (req, res) => {
+  console.log('📡 [API] Health check requested');
   res.json({ message: 'Clinic Management System API is running' });
 });
 

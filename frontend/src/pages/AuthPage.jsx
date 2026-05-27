@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 
 const AuthPage = () => {
-  const { login, register } = useContext(AuthContext);
+  const { login, register, loading } = useContext(AuthContext);
   const navigate = useNavigate();
   const [mode, setMode] = useState('login');
   const [role, setRole] = useState('patient');
@@ -29,11 +29,13 @@ const AuthPage = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    console.log('📤 Form submitted in', mode, 'mode');
 
     try {
       let authUser;
 
       if (mode === 'login') {
+        console.log('🔐 Calling login function');
         authUser = await login({ email: form.email, password: form.password });
         toast.success('Login successful');
       } else {
@@ -63,18 +65,23 @@ const AuthPage = () => {
           ];
         }
 
+        console.log(`📝 Calling register function for ${role}`);
         authUser = await register(role === 'patient' ? 'patient' : 'doctor', payload);
         toast.success('Registration successful');
       }
 
+      console.log('✅ Auth successful, user role:', authUser?.role);
       const destination = authUser?.role === 'doctor'
         ? '/doctor'
         : authUser?.role === 'admin'
         ? '/admin'
         : '/patient';
+      console.log('🚀 Navigating to:', destination);
       navigate(destination);
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
+      const errorMessage = error.response?.data?.message || error.message;
+      console.error('❌ Auth error:', errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -150,8 +157,12 @@ const AuthPage = () => {
             </div>
           )}
 
-          <button type="submit" className="w-full rounded-full bg-brand px-6 py-3 text-white hover:bg-blue-600">
-            {mode === 'login' ? 'Login' : `Register as ${role}`}
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full rounded-full bg-brand px-6 py-3 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {loading ? (mode === 'login' ? 'Logging in...' : `Registering as ${role}...`) : (mode === 'login' ? 'Login' : `Register as ${role}`)}
           </button>
         </form>
       </div>
