@@ -1,8 +1,10 @@
+import { useState, useContext } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { FiMenu, FiX } from 'react-icons/fi';
 import { AuthContext } from '../../context/AuthContext';
 
 const Navbar = () => {
+  const [open, setOpen] = useState(false);
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -11,24 +13,79 @@ const Navbar = () => {
     navigate('/');
   };
 
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Doctors', path: '/doctors' },
+    { label: 'About', path: '/about' },
+    { label: 'Contact', path: '/contact' },
+  ];
+
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link to="/" className="text-xl font-semibold text-brand">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/95 backdrop-blur-xl shadow-sm">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <Link to="/" className="flex items-center gap-3 text-2xl font-semibold text-brand">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-brand">M</span>
           Mediconnect
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm text-slate-700">
-          <NavLink to="/" className="hover:text-brand">Home</NavLink>
-          <NavLink to="/" className="hover:text-brand">Doctors</NavLink>
-          <NavLink to="/" className="hover:text-brand">About</NavLink>
-          <NavLink to="/contact" className="hover:text-brand">Contact</NavLink>
-          {!user && <NavLink to="/auth" className="text-brand font-medium">Login / Register</NavLink>}
-          {user && (
-            <button onClick={handleLogout} className="rounded-full bg-brand px-4 py-2 text-white hover:bg-blue-600">
-              Logout
-            </button>
-          )}
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 text-slate-700 shadow-sm md:hidden"
+          aria-label="Toggle navigation"
+        >
+          {open ? <FiX size={18} /> : <FiMenu size={18} />}
+        </button>
+
+        <nav className={`w-full transition-all duration-300 ${open ? 'block' : 'hidden'} md:block md:w-auto`}>
+          <ul className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
+            {navItems.map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `inline-flex rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                      isActive ? 'bg-brand text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`
+                  }
+                  onClick={() => setOpen(false)}
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+            {user?.role === 'patient' && (
+              <li>
+                <NavLink
+                  to="/my-tokens"
+                  className="inline-flex rounded-2xl px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+                  onClick={() => setOpen(false)}
+                >
+                  My Tokens
+                </NavLink>
+              </li>
+            )}
+            {user ? (
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"
+                >
+                  Logout
+                </button>
+              </li>
+            ) : (
+              <li>
+                <NavLink
+                  to="/auth"
+                  className="inline-flex rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"
+                  onClick={() => setOpen(false)}
+                >
+                  Login / Register
+                </NavLink>
+              </li>
+            )}
+          </ul>
         </nav>
       </div>
     </header>

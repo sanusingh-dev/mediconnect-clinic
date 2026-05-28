@@ -5,10 +5,13 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
+import AboutPage from './pages/AboutPage';
+import DoctorsPage from './pages/DoctorsPage';
 import ContactPage from './pages/ContactPage';
 import AuthPage from './pages/AuthPage';
 import PatientDashboard from './pages/PatientDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
+import MyTokens from './pages/MyTokens';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 
@@ -20,11 +23,14 @@ const App = () => {
         <main className="grow bg-slate-50">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/doctors" element={<DoctorsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />
 
             <Route element={<ProtectedRoute allowedRoles={[ 'patient' ]} />}>
               <Route path="/patient" element={<PatientDashboard />} />
+              <Route path="/my-tokens" element={<MyTokens />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={[ 'doctor' ]} />}>

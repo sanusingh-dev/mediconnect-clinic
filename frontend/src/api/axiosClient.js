@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Default to local backend during development, allow override with VITE_API_URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 console.log('🌐 API Base URL:', API_URL);
 
 const axiosClient = axios.create({

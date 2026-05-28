@@ -11,6 +11,8 @@ const doctorSchema = new mongoose.Schema(
     bio: { type: String, trim: true },
     phone: { type: String, trim: true },
     location: { type: String, trim: true },
+    photo: { type: String, trim: true },
+    fees: { type: Number, default: 500 },
     availableSlots: [
       {
         day: { type: String, required: true },

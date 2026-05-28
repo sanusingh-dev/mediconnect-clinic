@@ -10,7 +10,7 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Doctor not found');
   }
-  res.json(doctor.availableSlots);
+  res.json(doctor.availableSlots || []);
 });
 
 const bookAppointment = asyncHandler(async (req, res) => {
@@ -25,15 +25,19 @@ const bookAppointment = asyncHandler(async (req, res) => {
 
   const date = new Date(appointmentDate);
   const existingAppointments = await Appointment.find({ doctor: doctor._id, appointmentDate: date });
-  const token = existingAppointments.length + 1;
+  const tokenNumber = existingAppointments.length + 1;
 
   const appointment = await Appointment.create({
+    userId: req.user._id,
     patient: patient._id,
+    doctorId: doctor._id,
     doctor: doctor._id,
     appointmentDate: date,
+    appointmentTime: timeSlot,
     timeSlot,
-    token,
+    tokenNumber,
     status: 'pending',
+    paymentStatus: 'pending',
     createdBy: req.user._id,
   });
 

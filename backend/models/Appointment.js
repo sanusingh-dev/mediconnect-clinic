@@ -2,9 +2,19 @@ const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
     patient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Patient',
+      required: true,
+    },
+    doctorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Doctor',
       required: true,
     },
     doctor: {
@@ -12,11 +22,15 @@ const appointmentSchema = new mongoose.Schema(
       ref: 'Doctor',
       required: true,
     },
+    tokenNumber: {
+      type: Number,
+      default: 0,
+    },
     appointmentDate: {
       type: Date,
       required: true,
     },
-    timeSlot: {
+    appointmentTime: {
       type: String,
       required: true,
     },
@@ -25,9 +39,10 @@ const appointmentSchema = new mongoose.Schema(
       enum: ['pending', 'confirmed', 'completed', 'cancelled'],
       default: 'pending',
     },
-    token: {
-      type: Number,
-      default: 0,
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed'],
+      default: 'pending',
     },
     notes: { type: String, trim: true },
     createdBy: {
