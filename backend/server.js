@@ -24,15 +24,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS Configuration - Allow frontend to access API from local and production clients
-const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
+];
+
 const configuredOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || '')
   .split(',')
   .map((url) => url.trim())
   .filter(Boolean);
+
 const allowedOrigins = Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
 
 if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
-  console.warn('⚠️ No CLIENT_URL or CLIENT_URLS defined in production. Set your deployed frontend origin(s) to avoid CORS failures.');
+  console.warn(
+    '⚠️ [CORS] No CLIENT_URL or CLIENT_URLS defined in production.\n' +
+    '   Set environment variable CLIENT_URLS to your deployed frontend origin(s).\n' +
+    '   Example: CLIENT_URLS=https://mediconnect-frontend-1l1z.onrender.com\n' +
+    '   For multiple origins: CLIENT_URLS=https://mediconnect-frontend-1l1z.onrender.com,https://yourdomain.com'
+  );
 }
 
 const corsOptions = {
@@ -40,7 +52,10 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+    console.error(
+      `❌ [CORS] Request blocked from origin: ${origin}\n` +
+      `   Allowed origins: ${allowedOrigins.join(', ')}`
+    );
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -48,7 +63,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
 };
+
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Preflight handler for all routes
 app.use(morgan('dev'));
 
 const seedAdminUser = async () => {
@@ -117,13 +134,16 @@ const startServer = (port = DEFAULT_PORT, tries = MAX_PORT_TRIES) => {
   server = app
     .listen(port)
     .on('listening', () => {
-      console.log(`\n${'='.repeat(60)}`);
+      console.log(`\n${'='.repeat(70)}`);
       console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`);
       console.log(`✅ API Base URL: http://localhost:${port}/api`);
-      console.log(`✅ Recommended frontend VITE_API_URL: http://localhost:${port}/api`);
-      console.log(`✅ Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+      console.log(`✅ Allowed CORS origins (${allowedOrigins.length}):`);
+      allowedOrigins.forEach((origin) => console.log(`   - ${origin}`));
       console.log(`✅ Database Status: ${dbConnected ? '🟢 Connected' : '🟡 Connecting/Failed'}`);
-      console.log(`${'='.repeat(60)}\n`);
+      console.log(`\n📝 For Render production:`);
+      console.log(`   Set CLIENT_URLS env var to your frontend origin.`);
+      console.log(`   Set VITE_API_URL in frontend to this API's URL.`);
+      console.log(`${'='.repeat(70)}\n`);
     })
     .on('error', (err) => {
       if (err && err.code === 'EADDRINUSE') {
