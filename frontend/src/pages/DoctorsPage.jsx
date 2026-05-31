@@ -15,7 +15,8 @@ import PaymentProofUpload from '../components/ui/PaymentProofUpload';
 import TokenCard from '../components/ui/TokenCard';
 
 const DoctorsPage = () => {
-  const { user } = useContext(AuthContext);
+  const auth = useContext(AuthContext) ?? { user: null };
+  const { user } = auth;
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);

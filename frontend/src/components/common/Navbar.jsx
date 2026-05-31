@@ -7,8 +7,11 @@ import { ThemeContext } from '../../context/ThemeContext';
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { user, logout } = useContext(AuthContext);
-  const { theme, toggleTheme } = useContext(ThemeContext);
+  const auth = useContext(AuthContext) ?? { user: null, logout: () => {} };
+  const user = auth.user || null;
+  const logout = auth.logout || (() => {});
+  const themeContext = useContext(ThemeContext) ?? { theme: 'light', toggleTheme: () => {} };
+  const { theme, toggleTheme } = themeContext;
   const navigate = useNavigate();
   const profileRef = useRef(null);
 
@@ -27,7 +30,13 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const dashboardPath = user?.role === 'doctor' ? '/doctor-dashboard' : user?.role === 'admin' ? '/admin' : '/patient';
+  const dashboardPath = user?.role === 'doctor'
+    ? '/doctor-dashboard'
+    : user?.role === 'admin'
+    ? '/admin'
+    : user
+    ? '/patient'
+    : '/auth';
 
   const navItems = [
     { label: 'Home', path: '/' },

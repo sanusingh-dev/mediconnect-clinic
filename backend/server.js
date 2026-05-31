@@ -23,9 +23,26 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// CORS Configuration - Allow frontend to access API
+// CORS Configuration - Allow frontend to access API from local and production clients
+const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const configuredOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || '')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
+
+if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
+  console.warn('⚠️ No CLIENT_URL or CLIENT_URLS defined in production. Set your deployed frontend origin(s) to avoid CORS failures.');
+}
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -104,7 +121,7 @@ const startServer = (port = DEFAULT_PORT, tries = MAX_PORT_TRIES) => {
       console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`);
       console.log(`✅ API Base URL: http://localhost:${port}/api`);
       console.log(`✅ Recommended frontend VITE_API_URL: http://localhost:${port}/api`);
-      console.log(`✅ CORS Origin: ${corsOptions.origin}`);
+      console.log(`✅ Allowed CORS origins: ${allowedOrigins.join(', ')}`);
       console.log(`✅ Database Status: ${dbConnected ? '🟢 Connected' : '🟡 Connecting/Failed'}`);
       console.log(`${'='.repeat(60)}\n`);
     })

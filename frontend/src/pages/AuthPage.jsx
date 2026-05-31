@@ -5,7 +5,8 @@ import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 
 const AuthPage = () => {
-  const { login, register, loading } = useContext(AuthContext);
+  const auth = useContext(AuthContext) ?? { login: async () => {}, register: async () => {}, loading: false };
+  const { login, register, loading } = auth;
   const navigate = useNavigate();
   const [mode, setMode] = useState('login');
   const [role, setRole] = useState('patient');

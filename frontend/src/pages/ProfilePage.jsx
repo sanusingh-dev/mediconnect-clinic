@@ -3,7 +3,8 @@ import { AuthContext } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const ProfilePage = () => {
-  const { user, authLoading } = useContext(AuthContext);
+  const auth = useContext(AuthContext) ?? { user: null, authLoading: true };
+  const { user, authLoading } = auth;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -1,33 +1,90 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import axiosClient from '../api/axiosClient';
 import { getProfileService } from '../services/authService';
 
-export const AuthContext = createContext(null);
+const safeJsonParse = (value) => {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch (error) {
+    console.warn('Unable to parse localStorage JSON:', error);
+    return null;
+  }
+};
+
+const safeLocalStorageGet = (key) => {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Unable to read from localStorage:', key, error);
+    return null;
+  }
+};
+
+const safeLocalStorageRemove = (key) => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(key);
+  } catch (error) {
+    console.warn('Unable to remove localStorage key:', key, error);
+  }
+};
+
+const defaultAuthContext = {
+  user: null,
+  authLoading: false,
+  login: async () => {},
+  logout: () => {},
+  register: async () => {},
+  loading: false,
+  error: null,
+  setError: () => {},
+  refreshProfile: async () => {},
+};
+
+export const AuthContext = createContext(defaultAuthContext);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(() => safeJsonParse(safeLocalStorageGet('user')));
   const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('authToken');
-      const saved = localStorage.getItem('user');
+      const token = safeLocalStorageGet('authToken');
+      const storedUser = safeJsonParse(safeLocalStorageGet('user'));
 
-      if (token && saved) {
+      if (token && storedUser) {
         try {
           const response = await getProfileService();
-          const profileUser = response.data;
-          setUser({ ...profileUser, token });
+          const profileUser = response?.data;
+
+          if (profileUser) {
+            setUser({ ...profileUser, token });
+          } else {
+            throw new Error('Profile verification returned no user data');
+          }
         } catch (err) {
-          console.warn('Unable to verify token on startup, using stored user data.', err.message);
-          setUser(JSON.parse(saved));
+          console.warn('Unable to verify token on startup, clearing stored auth data.', err?.message || err);
+          safeLocalStorageRemove('authToken');
+          safeLocalStorageRemove('user');
+          setUser(null);
         }
+      } else {
+        safeLocalStorageRemove('authToken');
+        safeLocalStorageRemove('user');
+        setUser(null);
       }
+
       setAuthLoading(false);
     };
 
@@ -36,11 +93,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (user?.token) {
-      localStorage.setItem('authToken', user.token);
-      localStorage.setItem('user', JSON.stringify(user));
+      try {
+        localStorage.setItem('authToken', user.token);
+        localStorage.setItem('user', JSON.stringify(user));
+      } catch (err) {
+        console.warn('Unable to persist auth data:', err);
+      }
     } else {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      safeLocalStorageRemove('authToken');
+      safeLocalStorageRemove('user');
     }
   }, [user]);
 
@@ -53,6 +114,13 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('Login request failed:', {
+        url: '/auth/login',
+        payload: data,
+        status: error.response?.status,
+        response: error.response?.data,
+        message: error.message,
+      });
       setError(errorMsg);
       throw error;
     } finally {
@@ -74,6 +142,13 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
+      console.error('Register request failed:', {
+        url: `/auth/register/${path}`,
+        payload: data,
+        status: error.response?.status,
+        response: error.response?.data,
+        message: error.message,
+      });
       setError(errorMsg);
       throw error;
     } finally {
@@ -81,8 +156,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const response = await getProfileService();
+      const profileUser = response?.data;
+      if (profileUser) {
+        setUser((current) => ({ ...current, ...profileUser }));
+      }
+    } catch (err) {
+      console.warn('refreshProfile failed:', err?.message || err);
+      setUser(null);
+      safeLocalStorageRemove('authToken');
+      safeLocalStorageRemove('user');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, authLoading, login, logout, register, loading, error, setError }}>
+    <AuthContext.Provider
+      value={{ user, authLoading, login, logout, register, loading, error, setError, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

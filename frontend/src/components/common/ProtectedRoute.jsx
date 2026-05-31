@@ -4,7 +4,8 @@ import { AuthContext } from '../../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { user, authLoading } = useContext(AuthContext);
+  const auth = useContext(AuthContext) ?? { user: null, authLoading: true };
+  const { user, authLoading } = auth;
 
   if (authLoading) {
     return <div className="flex min-h-[calc(100vh-170px)] items-center justify-center"><LoadingSpinner /></div>;

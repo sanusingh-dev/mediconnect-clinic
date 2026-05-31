@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-// Default to local backend during development, allow override with VITE_API_URL
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const isDevelopment = import.meta.env.MODE === 'development';
+const API_URL = import.meta.env.VITE_API_URL || (isDevelopment ? 'http://localhost:5000/api' : '/api');
+
+if (!import.meta.env.VITE_API_URL && !isDevelopment) {
+  console.warn('⚠️ VITE_API_URL is not defined in production. Falling back to relative /api. Set VITE_API_URL to your backend API URL in Render env vars.');
+}
+
 console.log('🌐 API Base URL:', API_URL);
 
 const axiosClient = axios.create({
@@ -10,8 +15,8 @@ const axiosClient = axios.create({
 });
 
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  console.log(`📤 [${config.method.toUpperCase()}] ${config.url}${token ? ' [WITH TOKEN]' : ''}`);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  console.log(`📤 [${config.method?.toUpperCase() || 'REQUEST'}] ${config.url}${token ? ' [WITH TOKEN]' : ''}`);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

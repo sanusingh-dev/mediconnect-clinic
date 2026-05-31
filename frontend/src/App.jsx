@@ -21,9 +21,9 @@ import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
 
 const App = () => (
-  <AuthProvider>
-    <ThemeProvider>
-      <ErrorBoundary>
+  <ErrorBoundary>
+    <AuthProvider>
+      <ThemeProvider>
         <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
           <Navbar />
           <main className="grow">
@@ -60,9 +60,9 @@ const App = () => (
           <Footer />
           <ToastContainer position="top-right" theme="colored" />
         </div>
-      </ErrorBoundary>
-    </ThemeProvider>
-  </AuthProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  </ErrorBoundary>
 );
 
 export default App;

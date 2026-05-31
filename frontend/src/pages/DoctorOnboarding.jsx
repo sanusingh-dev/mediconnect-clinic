@@ -6,7 +6,8 @@ import { AuthContext } from '../context/AuthContext';
 import { updateDoctorProfileService } from '../services/doctorService';
 
 const DoctorOnboarding = () => {
-  const { user } = useContext(AuthContext);
+  const auth = useContext(AuthContext) ?? { user: null };
+  const { user } = auth;
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     specialty: '',
@@ -77,6 +78,12 @@ const DoctorOnboarding = () => {
       processFile(file);
     }
   };
+
+  useEffect(() => {
+    if (!user || user.role !== 'doctor') {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
