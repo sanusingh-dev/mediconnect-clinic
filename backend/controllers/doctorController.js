@@ -31,6 +31,9 @@ const updateDoctorProfile = asyncHandler(async (req, res) => {
   doctor.phone = req.body.phone || doctor.phone;
   doctor.location = req.body.location || doctor.location;
   doctor.availableSlots = req.body.availableSlots || doctor.availableSlots;
+  doctor.consultationFee = req.body.consultationFee || doctor.consultationFee;
+  doctor.upiId = req.body.upiId || doctor.upiId;
+  doctor.qrImage = req.body.qrImage || doctor.qrImage;
   await doctor.save();
 
   if (req.body.name) {

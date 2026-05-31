@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { FiSearch, FiClipboard, FiCheckCircle, FiUploadCloud, FiFileText, FiShield, FiHeart } from 'react-icons/fi';
+import { FiSearch, FiClipboard, FiCheckCircle, FiUploadCloud, FiFileText, FiShield, FiHeart, FiClock, FiTrendingUp } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { getDoctorsPublicService } from '../services/doctorService';
 import { bookAppointmentService } from '../services/appointmentService';
@@ -43,9 +43,12 @@ const PatientDashboard = () => {
   }, []);
 
   const filteredDoctors = useMemo(() => {
-    return doctors.filter((doctor) =>
-      doctor.user.name.toLowerCase().includes(searchQuery.toLowerCase()) || doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const q = searchQuery.toLowerCase();
+    return doctors.filter((doctor) => {
+      const name = (doctor?.user?.name || doctor?.name || '').toLowerCase();
+      const specialty = (doctor?.specialty || '').toLowerCase();
+      return name.includes(q) || specialty.includes(q);
+    });
   }, [doctors, searchQuery]);
 
   const stats = useMemo(() => {
@@ -205,7 +208,7 @@ const PatientDashboard = () => {
                   <option value="">Select doctor</option>
                   {filteredDoctors.map((doctor) => (
                     <option key={doctor._id} value={doctor._id}>
-                      Dr. {doctor.user.name} • {doctor.specialty}
+                      Dr. {doctor?.user?.name || doctor?.name || 'Unknown'} • {doctor?.specialty || 'General Medicine'}
                     </option>
                   ))}
                 </select>
@@ -241,12 +244,12 @@ const PatientDashboard = () => {
           <div className="rounded-3xl bg-slate-50 p-6">
             <p className="text-sm uppercase tracking-[0.3em] text-brand">Quick summary</p>
             <div className="mt-6 grid gap-4">
-              <div className="flex items-center justify-between rounded-3xl bg-white px-5 py-4 shadow-sm">
+                  <div className="flex items-center justify-between rounded-3xl bg-white px-5 py-4 shadow-sm">
                 <div>
                   <p className="text-sm text-slate-500">Upcoming</p>
-                  <p className="mt-2 text-xl font-semibold text-slate-900">{appointments.filter((item) => item.status === 'pending').length}</p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900">{appointments.filter((item) => item?.status === 'pending').length}</p>
                 </div>
-                <FiHourglass />
+                <FiClock />
               </div>
               <div className="flex items-center justify-between rounded-3xl bg-white px-5 py-4 shadow-sm">
                 <div>
@@ -280,16 +283,16 @@ const PatientDashboard = () => {
                 <div key={appointment._id} className="rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-lg font-semibold text-slate-900">Dr. {appointment.doctor.user.name}</p>
-                      <p className="text-sm text-slate-500">{appointment.doctor.specialty}</p>
+                      <p className="text-lg font-semibold text-slate-900">Dr. {appointment?.doctor?.user?.name || appointment?.doctor?.name || 'Unknown'}</p>
+                      <p className="text-sm text-slate-500">{appointment?.doctor?.specialty || 'General'}</p>
                     </div>
                     <span className="rounded-full bg-brand/10 px-4 py-2 text-sm font-semibold text-brand">{appointment.status}</span>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm text-slate-600">
-                    <p>{new Date(appointment.appointmentDate).toLocaleDateString()}</p>
-                    <p>{appointment.timeSlot}</p>
-                    <p>Token {appointment.tokenNumber || appointment.token}</p>
-                  </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm text-slate-600">
+                      <p>{appointment?.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : '—'}</p>
+                      <p>{appointment?.timeSlot || '—'}</p>
+                      <p>Token {appointment?.tokenNumber || appointment?.token || '—'}</p>
+                    </div>
                 </div>
               ))
             )}

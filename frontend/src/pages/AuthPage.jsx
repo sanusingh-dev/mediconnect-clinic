@@ -20,11 +20,37 @@ const AuthPage = () => {
     specialty: '',
     bio: '',
     location: '',
+    consultationFee: 300,
+    upiId: '',
+    qrImage: '',
     availableSlots: '',
   });
+  const [qrPreview, setQrPreview] = useState(null);
 
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
+  };
+
+  const handleQrFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload a valid image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('QR code file must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setQrPreview(reader.result);
+      setForm((prev) => ({ ...prev, qrImage: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (event) => {
@@ -57,6 +83,9 @@ const AuthPage = () => {
           payload.bio = form.bio;
           payload.phone = form.phone;
           payload.location = form.location;
+          payload.consultationFee = form.consultationFee;
+          payload.upiId = form.upiId;
+          payload.qrImage = form.qrImage;
           payload.availableSlots = [
             {
               day: 'Monday',
@@ -72,12 +101,12 @@ const AuthPage = () => {
 
       console.log('✅ Auth successful, user role:', authUser?.role);
       const destination = authUser?.role === 'doctor'
-        ? '/doctor'
+        ? '/doctor-dashboard'
         : authUser?.role === 'admin'
         ? '/admin'
         : '/patient';
       console.log('🚀 Navigating to:', destination);
-      navigate(destination);
+      navigate(destination, { replace: true });
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message;
       console.error('❌ Auth error:', errorMessage);
@@ -154,6 +183,22 @@ const AuthPage = () => {
               <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" required />
               <input name="location" value={form.location} onChange={handleChange} placeholder="Location" required />
               <input name="bio" value={form.bio} onChange={handleChange} placeholder="Short bio" required />
+              <input
+                name="consultationFee"
+                type="number"
+                min="50"
+                step="50"
+                value={form.consultationFee}
+                onChange={handleChange}
+                placeholder="Consultation fee"
+                required
+              />
+              <input name="upiId" value={form.upiId} onChange={handleChange} placeholder="UPI ID" required />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">QR Code Image</label>
+                <input type="file" accept="image/*" onChange={handleQrFileChange} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
+                {qrPreview && <img src={qrPreview} alt="QR preview" className="mt-3 h-40 w-full max-w-xs rounded-3xl object-contain" />}
+              </div>
             </div>
           )}
 

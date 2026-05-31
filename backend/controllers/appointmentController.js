@@ -24,8 +24,6 @@ const bookAppointment = asyncHandler(async (req, res) => {
   }
 
   const date = new Date(appointmentDate);
-  const existingAppointments = await Appointment.find({ doctor: doctor._id, appointmentDate: date });
-  const tokenNumber = existingAppointments.length + 1;
 
   const appointment = await Appointment.create({
     userId: req.user._id,
@@ -35,7 +33,6 @@ const bookAppointment = asyncHandler(async (req, res) => {
     appointmentDate: date,
     appointmentTime: timeSlot,
     timeSlot,
-    tokenNumber,
     status: 'pending',
     paymentStatus: 'pending',
     createdBy: req.user._id,

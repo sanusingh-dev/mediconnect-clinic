@@ -11,6 +11,10 @@
   background-color: #eef2ff;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased;

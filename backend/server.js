@@ -9,15 +9,29 @@ const patientRoutes = require('./routes/patientRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 dotenv.config();
-connectDB();
+
+let dbConnected = false;
+(async () => {
+  dbConnected = await connectDB();
+})();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cors());
+
+// CORS Configuration - Allow frontend to access API
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
 app.use(morgan('dev'));
 
 const seedAdminUser = async () => {
@@ -38,7 +52,21 @@ seedAdminUser().catch((error) => console.error('Admin seed error:', error));
 
 app.get('/', (req, res) => {
   console.log('📡 [API] Health check requested');
-  res.json({ message: 'Clinic Management System API is running' });
+  res.json({
+    message: 'Clinic Management System API is running',
+    status: 'ok',
+    database: dbConnected ? 'connected' : 'connecting',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    database: dbConnected ? 'connected' : 'connecting',
+    apiVersion: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use('/api/auth', authRoutes);
@@ -46,6 +74,7 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/payments', paymentRoutes);
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
@@ -57,7 +86,54 @@ if (process.env.NODE_ENV === 'production') {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 5000;
+
+let server;
+const MAX_PORT_TRIES = 10;
+
+const startServer = (port = DEFAULT_PORT, tries = MAX_PORT_TRIES) => {
+  if (tries <= 0) {
+    console.error(`🚫 Unable to bind to a port after ${MAX_PORT_TRIES} attempts. Exiting.`);
+    process.exit(1);
+  }
+
+  server = app
+    .listen(port)
+    .on('listening', () => {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`);
+      console.log(`✅ API Base URL: http://localhost:${port}/api`);
+      console.log(`✅ Recommended frontend VITE_API_URL: http://localhost:${port}/api`);
+      console.log(`✅ CORS Origin: ${corsOptions.origin}`);
+      console.log(`✅ Database Status: ${dbConnected ? '🟢 Connected' : '🟡 Connecting/Failed'}`);
+      console.log(`${'='.repeat(60)}\n`);
+    })
+    .on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE') {
+        console.warn(`⚠️ Port ${port} is already in use. Trying port ${port + 1}... (${tries - 1} tries left)`);
+        // try next port
+        setTimeout(() => startServer(port + 1, tries - 1), 200);
+      } else {
+        console.error('Server error:', err);
+        process.exit(1);
+      }
+    });
+};
+
+startServer();
+
+// Graceful shutdown
+const shutdown = (signal) => {
+  console.log(`📋 ${signal} signal received: closing HTTP server`);
+  if (server) {
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

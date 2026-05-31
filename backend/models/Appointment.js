@@ -41,8 +41,13 @@ const appointmentSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'failed'],
+      enum: ['pending', 'proof_uploaded', 'confirmed', 'rejected'],
       default: 'pending',
+    },
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payment',
+      default: null,
     },
     notes: { type: String, trim: true },
     createdBy: {

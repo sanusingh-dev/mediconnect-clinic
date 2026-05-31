@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from 'react';
 import axiosClient from '../api/axiosClient';
+import { getProfileService } from '../services/authService';
 
 export const AuthContext = createContext(null);
 
@@ -8,8 +9,30 @@ export const AuthProvider = ({ children }) => {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
   });
+  const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('authToken');
+      const saved = localStorage.getItem('user');
+
+      if (token && saved) {
+        try {
+          const response = await getProfileService();
+          const profileUser = response.data;
+          setUser({ ...profileUser, token });
+        } catch (err) {
+          console.warn('Unable to verify token on startup, using stored user data.', err.message);
+          setUser(JSON.parse(saved));
+        }
+      }
+      setAuthLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
 
   useEffect(() => {
     if (user?.token) {
@@ -25,14 +48,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔐 Attempting login with email:', data.email);
       const response = await axiosClient.post('/auth/login', data);
-      console.log('✅ Login successful:', response.data);
       setUser(response.data);
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
-      console.error('❌ Login error:', errorMsg);
       setError(errorMsg);
       throw error;
     } finally {
@@ -41,7 +61,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log('🚪 Logging out');
     setUser(null);
     setError(null);
   };
@@ -50,14 +69,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`📝 Attempting ${path} registration for:`, data.email);
       const response = await axiosClient.post(`/auth/register/${path}`, data);
-      console.log(`✅ ${path} registration successful:`, response.data);
       setUser(response.data);
       return response.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
-      console.error(`❌ ${path} registration error:`, errorMsg);
       setError(errorMsg);
       throw error;
     } finally {
@@ -66,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, loading, setLoading, error, setError }}>
+    <AuthContext.Provider value={{ user, authLoading, login, logout, register, loading, error, setError }}>
       {children}
     </AuthContext.Provider>
   );

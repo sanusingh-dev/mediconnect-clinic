@@ -3,11 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FiSearch, FiStar, FiClock, FiHeart, FiChevronRight } from 'react-icons/fi';
+import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 import { getDoctorsPublicService } from '../services/doctorService';
 import { bookAppointmentService } from '../services/appointmentService';
+import { uploadPaymentProofService } from '../services/paymentService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import QRPaymentCard from '../components/ui/QRPaymentCard';
+import PaymentProofUpload from '../components/ui/PaymentProofUpload';
+import TokenCard from '../components/ui/TokenCard';
 
 const DoctorsPage = () => {
   const { user } = useContext(AuthContext);
@@ -19,6 +24,10 @@ const DoctorsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [showPaymentFlow, setShowPaymentFlow] = useState(false);
+  const [bookedAppointment, setBookedAppointment] = useState(null);
+  const [paymentProofUploaded, setPaymentProofUploaded] = useState(false);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
 
   useEffect(() => {
     const loadDoctors = async () => {
@@ -41,16 +50,23 @@ const DoctorsPage = () => {
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doctor) => {
-      const matchesSearch = [doctor.user.name, doctor.specialty].some((field) =>
-        field?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      const matchesSpecialty = selectedSpecialty === 'All' || doctor.specialty === selectedSpecialty;
+      const name = (doctor?.user?.name || doctor?.name || '').toLowerCase();
+      const specialty = (doctor?.specialty || '').toLowerCase();
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = name.includes(q) || specialty.includes(q);
+      const matchesSpecialty = selectedSpecialty === 'All' || doctor?.specialty === selectedSpecialty;
       return matchesSearch && matchesSpecialty;
     });
   }, [doctors, searchQuery, selectedSpecialty]);
 
-  const experience = (doctor) => `${Math.max(5, Math.floor((doctor.user.name.length % 6) + 5))}+ yrs`;
-  const rating = (doctor) => (4.5 + (doctor.user.name.length % 5) * 0.1).toFixed(1);
+  const experience = (doctor) => {
+    const nameLen = (doctor?.user?.name || doctor?.name || '').length;
+    return `${Math.max(5, Math.floor((nameLen % 6) + 5))}+ yrs`;
+  };
+  const rating = (doctor) => {
+    const nameLen = (doctor?.user?.name || doctor?.name || '').length;
+    return (4.5 + (nameLen % 5) * 0.1).toFixed(1);
+  };
 
   const formatTime = (date) => {
     if (!date) return '';
@@ -80,14 +96,35 @@ const DoctorsPage = () => {
     }
 
     try {
-      await bookAppointmentService(formData);
-      toast.success('Token generated successfully. Check My Tokens to review your appointment.');
-      setSelectedDoctor(null);
+      const response = await bookAppointmentService(formData);
+      setBookedAppointment(response.data);
+      setShowPaymentFlow(true);
+      toast.success('Appointment created. Please upload payment proof.');
       setSelectedTime(null);
       setFormData({ doctorId: '', appointmentDate: '', timeSlot: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to create token');
     }
+  };
+
+  const handlePaymentProofUpload = async (proofData) => {
+    setIsUploadingProof(true);
+    try {
+      await uploadPaymentProofService(bookedAppointment._id, proofData);
+      setPaymentProofUploaded(true);
+      toast.success('Payment proof uploaded! Doctor will verify shortly.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to upload payment proof');
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
+
+  const closePaymentFlow = () => {
+    setShowPaymentFlow(false);
+    setPaymentProofUploaded(false);
+    setBookedAppointment(null);
+    setSelectedDoctor(null);
   };
 
   const selectDoctor = (doctor) => {
@@ -194,9 +231,9 @@ const DoctorsPage = () => {
               filteredDoctors.map((doctor, index) => (
                 <div key={doctor._id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
                   <div className="flex items-center gap-4">
-                    <img src={formatImage(doctor)} alt={doctor.user.name} className="h-16 w-16 rounded-3xl object-cover" />
+                    <img src={formatImage(doctor)} alt={doctor?.user?.name || doctor?.name || 'Doctor'} className="h-16 w-16 rounded-3xl object-cover" />
                     <div>
-                      <p className="text-lg font-semibold text-slate-900">Dr. {doctor.user.name}</p>
+                      <p className="text-lg font-semibold text-slate-900">Dr. {doctor?.user?.name || doctor?.name || 'Unknown'}</p>
                       <p className="text-sm text-slate-500">{doctor.specialty}</p>
                     </div>
                   </div>
@@ -208,8 +245,8 @@ const DoctorsPage = () => {
                   <p className="mt-4 text-slate-600 line-clamp-3">{doctor.bio || 'Highly respected clinician with a strong patient focus and responsive availability.'}</p>
                   <div className="mt-5 flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm text-slate-500">Consultation</p>
-                      <p className="text-lg font-semibold text-slate-900">₹{doctor.fees || 500}</p>
+                      <p className="text-sm text-slate-500">Consultation Fee</p>
+                      <p className="text-lg font-semibold text-slate-900">₹{doctor.consultationFee || doctor.fees || 300}</p>
                     </div>
                     <button
                       onClick={() => selectDoctor(doctor)}
@@ -251,7 +288,7 @@ const DoctorsPage = () => {
 
           {selectedDoctor && (
             <section className="mt-8 rounded-[1.5rem] bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-900">Book with Dr. {selectedDoctor.user.name}</h3>
+              <h3 className="text-xl font-semibold text-slate-900">Book with Dr. {selectedDoctor?.user?.name || selectedDoctor?.name || 'Unknown'}</h3>
               <form onSubmit={handleBook} className="mt-6 space-y-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700">Appointment date</label>
@@ -297,6 +334,56 @@ const DoctorsPage = () => {
           </div>
         ))}
       </section>
+
+      {/* Payment Flow Modal */}
+      {showPaymentFlow && bookedAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-8 dark:bg-slate-900">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Complete Your Booking</h2>
+              <button
+                onClick={closePaymentFlow}
+                className="inline-flex items-center justify-center rounded-full w-10 h-10 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {!paymentProofUploaded ? (
+              <div className="grid gap-8 lg:grid-cols-2">
+                <QRPaymentCard 
+                  doctor={selectedDoctor}
+                  amount={selectedDoctor?.consultationFee || 300}
+                />
+                <PaymentProofUpload 
+                  onUpload={handlePaymentProofUpload}
+                  isLoading={isUploadingProof}
+                />
+              </div>
+            ) : (
+              <div className="max-w-2xl mx-auto">
+                <TokenCard
+                  payment={{
+                    amount: selectedDoctor?.consultationFee || 300,
+                    paymentStatus: 'proof_uploaded',
+                    tokenStatus: 'pending',
+                  }}
+                  doctor={selectedDoctor}
+                  patient={user}
+                  appointment={bookedAppointment}
+                />
+                
+                <button
+                  onClick={closePaymentFlow}
+                  className="mt-6 w-full inline-flex items-center justify-center rounded-xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Go to My Tokens
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

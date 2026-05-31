@@ -39,7 +39,19 @@ const registerPatient = asyncHandler(async (req, res) => {
 
 const registerDoctor = asyncHandler(async (req, res) => {
   console.log('📝 [DOCTOR REGISTER] Received request:', { email: req.body.email, name: req.body.name });
-  const { name, email, password, specialty, bio, phone, location, availableSlots } = req.body;
+  const {
+    name,
+    email,
+    password,
+    specialty,
+    bio,
+    phone,
+    location,
+    availableSlots,
+    consultationFee,
+    upiId,
+    qrImage,
+  } = req.body;
   const userExists = await User.findOne({ email });
 
   if (userExists) {
@@ -64,6 +76,9 @@ const registerDoctor = asyncHandler(async (req, res) => {
     phone,
     location,
     availableSlots,
+    consultationFee: consultationFee || 300,
+    upiId: upiId || '',
+    qrImage: qrImage || '',
   });
   console.log('✅ [DOCTOR REGISTER] Success:', { userId: user._id, email: user.email });
 

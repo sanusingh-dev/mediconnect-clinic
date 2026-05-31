@@ -13,6 +13,9 @@ const doctorSchema = new mongoose.Schema(
     location: { type: String, trim: true },
     photo: { type: String, trim: true },
     fees: { type: Number, default: 500 },
+    consultationFee: { type: Number, default: 300 },
+    upiId: { type: String, trim: true, default: '' },
+    qrImage: { type: String, trim: true, default: '' },
     availableSlots: [
       {
         day: { type: String, required: true },
